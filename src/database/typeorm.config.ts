@@ -38,11 +38,18 @@ const databaseEnvSchema = z.object({
   ),
 });
 
-function createSslConfig(environment: {
-  DB_SSL: 'true' | 'false';
-  DB_SSL_NO_VERIFY: 'true' | 'false';
-}) {
-  const sslEnabled = environment.DB_SSL === 'true';
+function createSslConfig(
+  environment: {
+    DB_SSL: 'true' | 'false';
+    DB_SSL_NO_VERIFY: 'true' | 'false';
+  },
+  databaseUrl?: string,
+) {
+  const shouldForceSslFromUrl =
+    !!databaseUrl &&
+    !databaseUrl.includes('localhost') &&
+    !databaseUrl.includes('127.0.0.1');
+  const sslEnabled = environment.DB_SSL === 'true' || shouldForceSslFromUrl;
   const sslNoVerify = environment.DB_SSL_NO_VERIFY === 'true';
 
   if (!sslEnabled) {
@@ -54,14 +61,30 @@ function createSslConfig(environment: {
   };
 }
 
+function sanitizeDatabaseUrl(databaseUrl?: string) {
+  if (!databaseUrl) {
+    return undefined;
+  }
+
+  const url = new URL(databaseUrl);
+  url.searchParams.delete('sslmode');
+  url.searchParams.delete('sslcert');
+  url.searchParams.delete('sslkey');
+  url.searchParams.delete('sslrootcert');
+
+  return url.toString();
+}
+
 export function createTypeOrmOptions(
   configService?: ConfigService,
 ): TypeOrmModuleOptions & DataSourceOptions {
   const environment = configService
     ? validateEnv(process.env)
     : databaseEnvSchema.parse(process.env);
-  const databaseUrl =
-    configService?.get<string>('DATABASE_URL') ?? environment.DATABASE_URL;
+  const databaseUrl = sanitizeDatabaseUrl(
+    configService?.get<string>('DATABASE_URL') ?? environment.DATABASE_URL,
+  );
+  const ssl = createSslConfig(environment, databaseUrl);
 
   return {
     type: 'postgres',
@@ -80,7 +103,12 @@ export function createTypeOrmOptions(
             configService?.get<string>('DB_DATABASE') ??
             environment.DB_DATABASE,
         }),
-    ssl: createSslConfig(environment),
+    ssl,
+    extra: ssl
+      ? {
+          ssl,
+        }
+      : undefined,
     entities: ENTITIES,
     migrations: [InitialSchema1763424000000],
     synchronize:
