@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { ReadyMadeItem } from './ready-made-item.entity';
 
@@ -20,5 +20,6 @@ export class Feedback extends BaseEntity {
     nullable: false,
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'readyMadeItemId' })
   readyMadeItem: ReadyMadeItem;
 }

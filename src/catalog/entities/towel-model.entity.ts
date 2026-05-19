@@ -5,6 +5,7 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { ColorOption } from './color-option.entity';
@@ -28,12 +29,23 @@ export class TowelModel extends BaseEntity {
   @ManyToOne(() => TowelType, (towelType) => towelType.models, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'towelTypeId' })
   towelType: TowelType;
 
   @ManyToMany(() => ColorOption, (color) => color.towelModels, {
     cascade: false,
   })
-  @JoinTable()
+  @JoinTable({
+    name: 'towel_model_color_options',
+    joinColumn: {
+      name: 'towelModelId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'colorOptionId',
+      referencedColumnName: 'id',
+    },
+  })
   availableColors: ColorOption[];
 
   @OneToMany(() => ReadyMadeItem, (readyMadeItem) => readyMadeItem.towelModel)

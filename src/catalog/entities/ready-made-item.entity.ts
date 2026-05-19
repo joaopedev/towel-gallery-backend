@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
   ManyToOne,
@@ -31,24 +32,37 @@ export class ReadyMadeItem extends BaseEntity {
     nullable: false,
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'towelTypeId' })
   towelType: TowelType;
 
   @ManyToOne(() => TowelModel, (towelModel) => towelModel.readyMadeItems, {
     nullable: true,
     onDelete: 'SET NULL',
   })
+  @JoinColumn({ name: 'towelModelId' })
   towelModel?: TowelModel | null;
 
   @ManyToOne(() => LetterStyle, (letterStyle) => letterStyle.readyMadeItems, {
     nullable: true,
     onDelete: 'SET NULL',
   })
+  @JoinColumn({ name: 'letterStyleId' })
   letterStyle?: LetterStyle | null;
 
   @ManyToMany(() => ColorOption, (color) => color.readyMadeItems, {
     cascade: false,
   })
-  @JoinTable()
+  @JoinTable({
+    name: 'ready_made_item_color_options',
+    joinColumn: {
+      name: 'readyMadeItemId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'colorOptionId',
+      referencedColumnName: 'id',
+    },
+  })
   colors: ColorOption[];
 
   @OneToMany(() => Feedback, (feedback) => feedback.readyMadeItem)

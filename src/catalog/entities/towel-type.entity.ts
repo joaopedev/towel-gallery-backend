@@ -21,7 +21,17 @@ export class TowelType extends BaseEntity {
   @ManyToMany(() => ColorOption, (color) => color.towelTypes, {
     cascade: false,
   })
-  @JoinTable()
+  @JoinTable({
+    name: 'towel_type_color_options',
+    joinColumn: {
+      name: 'towelTypeId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'colorOptionId',
+      referencedColumnName: 'id',
+    },
+  })
   availableColors: ColorOption[];
 
   @OneToMany(() => TowelModel, (towelModel) => towelModel.towelType)
