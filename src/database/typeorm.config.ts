@@ -1,9 +1,42 @@
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DataSourceOptions } from 'typeorm';
+import { z } from 'zod';
 import { validateEnv } from '../config/env.schema';
 import { ENTITIES } from './entities';
 import { InitialSchema1763424000000 } from './migrations/1763424000000-InitialSchema';
+
+const emptyToUndefined = (value: unknown) => {
+  if (typeof value === 'string' && value.trim() === '') {
+    return undefined;
+  }
+
+  return value;
+};
+
+const databaseEnvSchema = z.object({
+  DATABASE_URL: z.preprocess(emptyToUndefined, z.string().optional()),
+  DB_HOST: z.preprocess(emptyToUndefined, z.string().default('localhost')),
+  DB_PORT: z.preprocess(emptyToUndefined, z.coerce.number().default(5432)),
+  DB_USERNAME: z.preprocess(emptyToUndefined, z.string().default('postgres')),
+  DB_PASSWORD: z.preprocess(emptyToUndefined, z.string().default('postgres')),
+  DB_DATABASE: z.preprocess(
+    emptyToUndefined,
+    z.string().default('galery_mother'),
+  ),
+  DB_SYNCHRONIZE: z.preprocess(
+    emptyToUndefined,
+    z.enum(['true', 'false']).default('false'),
+  ),
+  DB_SSL: z.preprocess(
+    emptyToUndefined,
+    z.enum(['true', 'false']).default('false'),
+  ),
+  DB_SSL_NO_VERIFY: z.preprocess(
+    emptyToUndefined,
+    z.enum(['true', 'false']).default('false'),
+  ),
+});
 
 function createSslConfig(environment: {
   DB_SSL: 'true' | 'false';
@@ -24,7 +57,9 @@ function createSslConfig(environment: {
 export function createTypeOrmOptions(
   configService?: ConfigService,
 ): TypeOrmModuleOptions & DataSourceOptions {
-  const environment = validateEnv(process.env);
+  const environment = configService
+    ? validateEnv(process.env)
+    : databaseEnvSchema.parse(process.env);
   const databaseUrl =
     configService?.get<string>('DATABASE_URL') ?? environment.DATABASE_URL;
 
