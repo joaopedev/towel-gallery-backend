@@ -11,8 +11,36 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+  const escapeRegex = (value: string) =>
+    value.replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&');
+
+  const isOriginAllowed = (origin: string) =>
+    allowedOrigins.some((allowedOrigin) => {
+      if (allowedOrigin.includes('*')) {
+        const wildcardPattern = allowedOrigin
+          .split('*')
+          .map((part) => escapeRegex(part))
+          .join('.*');
+        const pattern = new RegExp(`^${wildcardPattern}$`);
+
+        return pattern.test(origin);
+      }
+
+      return allowedOrigin === origin;
+    });
+
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (
+      origin: string | undefined,
+      callback: (error: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin || isOriginAllowed(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+    },
     credentials: true,
   });
 
